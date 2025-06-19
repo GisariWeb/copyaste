@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+  <title>Shared Text</title>
+  <style>
+    div#qrcodeContainer {
+      width: auto;
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
+
+</head>
+
+<body>
+  <div class="section">
+    <h1 class="center title" style="text-align:center">COPYASTE</h1>
+    <div class="fixed-grid has-12-cols">
+      <div class="grid">
+        <div class="cell"></div>
+        <!-- <textarea id="sharedText"></textarea> -->
+        <div class="cell is-col-span-10">
+          <form>
+            <label class="label">Text to Copy</label>
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input id="sharedText" class="input is-medium" type="text" placeholder="Input or Copy your Text here">
+                <!-- <textarea class="textarea" id="sharedText" rows="2" placeholder="Write your thoughts here...">
+                </textarea> -->
+              </div>
+              <div class="control">
+                <button class="button is-medium is-dark"><i data-feather="copy"></i> Copy</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="cell"></div>
+      </div>
+    </div>
+
+
+    <div id="qrcodeContainer">
+      <canvas id="qrcode"></canvas> <!-- Atur ukuran canvas -->
+    </div>
+
+
+  </div>
+
+  <script>
+    const textarea = document.getElementById('sharedText');
+    const qrcodeContainer = document.getElementById('qrcodeContainer');
+    const roomId = window.location.pathname.substring(1); // Ambil roomId dari URL
+
+    // --- Bagian untuk QR Code (tetap sama) ---
+    const fullUrl = window.location.href; // Dapatkan URL lengkap saat ini
+    // console.log("URL for QR Code:", fullUrl);
+
+    const qr = qrcode(0, 'M');
+    qr.addData(fullUrl);
+    qr.make();
+
+    const canvas = document.getElementById('qrcode');
+    // qr.renderTo2dContext(canvas.getContext('2d'));
+    qrcodeContainer.innerHTML = qr.createImgTag(3, 12);
+    // --- Akhir Bagian untuk QR Code ---
+
+
+    // Ganti WebSocket dengan Socket.IO
+    // URL koneksi Socket.IO biasanya hanya host dan port
+    const socket = io(); // Hubungkan ke server Socket.IO
+
+    socket.on('connect', () => {
+      console.log('Socket.IO connected');
+      // Setelah terhubung, beritahu server ke room mana klien ingin bergabung
+      console.log('Joining room:', roomId);
+      socket.emit('joinRoom', roomId);
+    });
+
+    // Tangani event 'currentText' (data awal saat bergabung)
+    socket.on('currentText', (text) => {
+      console.log('Received current text:', text);
+      textarea.value = text;
+    });
+
+    // Tangani event 'textUpdate' (pembaruan teks dari klien lain)
+    socket.on('textUpdate', (text) => {
+      console.log('Received text update:', text);
+      textarea.value = text; // Update textarea
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket.IO disconnected');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', error);
+    });
+
+    // Kirim teks ke server saat ada input di textarea
+    textarea.addEventListener('input', () => {
+      // Kirim event 'textChange' dengan data roomId dan teks
+      socket.emit('textChange', { roomId: roomId, text: textarea.value });
+    });
+
+  </script>
+</body>
+
+</html>
