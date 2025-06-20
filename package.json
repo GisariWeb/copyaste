@@ -6,13 +6,22 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --watch 'src/**' --ext 'ts,json' --watch 'public/**' --exec 'npm run build && npm run start'",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "rimraf dist && tsc",
+    "ts.check": "tsc --project tsconfig.json",
+    "add-build": "git add dist",
+    "start": "nodemon src/index.ts"
   },
+  "pre-commit": [
+    "ts.check",
+    "build",
+    "add-build"
+  ],
   "author": "Google LLC",
   "license": "Apache-2.0",
   "dependencies": {
     "express": "^4.21.2",
+    "pre-commit": "^1.2.2",
+    "rimraf": "^6.0.1",
     "ws": "^8.14.2"
   },
   "devDependencies": {
